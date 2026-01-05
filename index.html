@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sync-Sheets Finance</title>
+    <title>Finanzas Nel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
@@ -20,7 +20,7 @@
     <header class="p-6 flex justify-between items-center max-w-md mx-auto w-full">
         <h1
             class="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-            SYNC-SHEETS
+            FINANZAS NEL
         </h1>
         <a id="sheet-link" href="#" target="_blank"
             class="text-xs font-semibold text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700 hover:bg-slate-700 transition-all">
@@ -56,10 +56,50 @@
         <div id="main-container"
             class="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl border border-slate-800/50 rounded-3xl p-6 shadow-2xl">
 
-            <!-- Dashboard View (Visible by default) -->
+            <!-- Dashboard View -->
             <div id="dashboard-view" class="space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-slate-200">Actividad Reciente</h2>
+                <!-- Monthly Summary Stats -->
+                <div id="stats-summary" class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/30">
+                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Ingresos</p>
+                        <p id="total-ingresos" class="text-lg font-bold text-slate-100">$0</p>
+                    </div>
+                    <div class="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/30">
+                        <p class="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-1">Egresos</p>
+                        <p id="total-egresos" class="text-lg font-bold text-slate-100">$0</p>
+                    </div>
+                </div>
+
+                <!-- Budget Progress -->
+                <div id="budget-section" class="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/30 space-y-3">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Presupuesto
+                                Mensual</p>
+                            <p id="budget-amount" class="text-xl font-bold text-slate-100">$0</p>
+                        </div>
+                        <div class="text-right">
+                            <p id="budget-percent" class="text-xs font-bold text-slate-400">0%</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-900/60 rounded-full h-2 overflow-hidden">
+                        <div id="budget-bar"
+                            class="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full transition-all duration-1000"
+                            style="width: 0%"></div>
+                    </div>
+                    <p id="budget-status" class="text-[10px] text-slate-500 italic">Cargando presupuesto...</p>
+                </div>
+
+                <!-- Category Breakdown Section -->
+                <div id="category-breakdown-section" class="space-y-4">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-widest">Gastos por Categoría</h2>
+                    <div id="category-list" class="space-y-3">
+                        <p class="text-xs text-slate-500 italic text-center py-4">Cargando desglose...</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-widest">Actividad Reciente</h2>
                     <button onclick="switchTab('ingreso')"
                         class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full border border-emerald-500/20 hover:bg-emerald-500/20 transition-all uppercase tracking-wider">
                         + Nuevo
@@ -70,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- Form View (Hidden by default) -->
+            <!-- Form View -->
             <form id="finance-form" class="hidden space-y-6">
                 <input type="hidden" id="form-type" value="ingreso">
 

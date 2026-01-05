@@ -1,10 +1,3 @@
-// Configuration
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwUNJCe5hTtvfq-ZMPHK0hDJP7VroXY3kZ_jVhCgPGTMhLTWFc6UoWMro22DWKXiZjK/exec';
-
-// State
-let categories = { ingresos: [], egresos: [], ahorro: [] };
-let currentTab = 'dashboard';
-
 // Elements
 const form = document.getElementById('finance-form');
 const dashboardView = document.getElementById('dashboard-view');
@@ -16,6 +9,15 @@ const toastMsg = document.getElementById('toast-msg');
 const toastIcon = document.getElementById('toast-icon');
 const sheetLink = document.getElementById('sheet-link');
 const recentList = document.getElementById('recent-list');
+const categoryList = document.getElementById('category-list');
+
+// Stats Elements
+const totalIngresosEl = document.getElementById('total-ingresos');
+const totalEgresosEl = document.getElementById('total-egresos');
+const budgetAmountEl = document.getElementById('budget-amount');
+const budgetPercentEl = document.getElementById('budget-percent');
+const budgetBarEl = document.getElementById('budget-bar');
+const budgetStatusEl = document.getElementById('budget-status');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,21 +30,29 @@ function setupEventListeners() {
     form.addEventListener('submit', handleFormSubmit);
 }
 
+// Helper for COP formatting
+function formatCOP(amount) {
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
 async function fetchCategories() {
     try {
         const response = await fetch(`${GAS_WEB_APP_URL}?action=getCategories`);
         const data = await response.json();
         if (data && !data.error) {
             categories = data;
-            console.log('Categories loaded:', categories);
         } else {
-            console.warn('Backend returned error or empty categories:', data?.error);
-            showToast('Error al cargar categorías de la hoja', 'error');
+            showToast('Error al cargar categorías', 'error');
         }
         updateCategoryDropdown();
     } catch (error) {
         console.error('Error fetching categories:', error);
-        showToast(`Error de conexión: ${error.message}`, 'error');
+        showToast(`Error de conexión`, 'error');
     }
 }
 
@@ -54,6 +64,7 @@ async function fetchDashboardData() {
         if (data && !data.error) {
             if (data.sheetUrl) sheetLink.href = data.sheetUrl;
             renderDashboard(data.recent);
+            renderStats(data.totals, data.budget, data.month, data.categoryBreakdown);
         } else {
             recentList.innerHTML = '<p class="text-sm text-rose-500 text-center py-10">Error al cargar datos.</p>';
         }
@@ -61,6 +72,74 @@ async function fetchDashboardData() {
         console.error('Error fetching dashboard:', error);
         recentList.innerHTML = '<p class="text-sm text-rose-500 text-center py-10">Error de conexión.</p>';
     }
+}
+
+function renderStats(totals, budget, month, categoryBreakdown) {
+    if (!totals) {
+        budgetStatusEl.textContent = '⚠️ Por favor, actualiza el código en Google Apps Script.';
+        budgetStatusEl.className = 'text-[10px] text-amber-400 italic font-bold';
+        return;
+    }
+
+    totalIngresosEl.textContent = formatCOP(totals.ingresos || 0);
+    totalEgresosEl.textContent = formatCOP(totals.egresos || 0);
+
+    // Render Budget
+    if (budget > 0) {
+        budgetAmountEl.textContent = formatCOP(budget);
+        const percent = totals.egresos > 0 ? Math.min(100, (totals.egresos / budget) * 100) : 0;
+        budgetPercentEl.textContent = `${Math.round(percent)}%`;
+        budgetBarEl.style.width = `${percent}%`;
+
+        if (percent > 90) {
+            budgetBarEl.className = 'bg-gradient-to-r from-rose-500 to-rose-400 h-full transition-all duration-1000';
+            budgetStatusEl.textContent = `¡Cuidado! Has usado el ${Math.round(percent)}% de tu presupuesto.`;
+            budgetStatusEl.className = 'text-[10px] text-rose-400 italic font-bold';
+        } else if (percent > 70) {
+            budgetBarEl.className = 'bg-gradient-to-r from-amber-500 to-amber-400 h-full transition-all duration-1000';
+            budgetStatusEl.textContent = `Has usado el ${Math.round(percent)}% de tu presupuesto.`;
+            budgetStatusEl.className = 'text-[10px] text-amber-400 italic';
+        } else {
+            budgetBarEl.className = 'bg-gradient-to-r from-emerald-500 to-emerald-400 h-full transition-all duration-1000';
+            budgetStatusEl.textContent = `Vas bien. Te quedan ${formatCOP(budget - totals.egresos)} para ${month}.`;
+            budgetStatusEl.className = 'text-[10px] text-slate-500 italic';
+        }
+    } else {
+        budgetAmountEl.textContent = '$0';
+        budgetPercentEl.textContent = '0%';
+        budgetBarEl.style.width = '0%';
+        budgetStatusEl.textContent = 'Crea una pestaña "Presupuesto" con tu límite en A2.';
+        budgetStatusEl.className = 'text-[10px] text-slate-600 italic';
+    }
+
+    // Render Category Breakdown
+    renderCategoryBreakdown(categoryBreakdown, totals.egresos);
+}
+
+function renderCategoryBreakdown(breakdown, totalEgresos) {
+    if (!breakdown || Object.keys(breakdown).length === 0) {
+        categoryList.innerHTML = '<p class="text-xs text-slate-500 italic text-center py-4">No hay gastos registrados este mes.</p>';
+        return;
+    }
+
+    categoryList.innerHTML = '';
+    const sortedCategories = Object.entries(breakdown).sort((a, b) => b[1] - a[1]);
+
+    sortedCategories.forEach(([category, amount]) => {
+        const percent = totalEgresos > 0 ? (amount / totalEgresos) * 100 : 0;
+        const div = document.createElement('div');
+        div.className = 'space-y-1.5';
+        div.innerHTML = `
+            <div class="flex justify-between items-end px-1">
+                <p class="text-xs font-semibold text-slate-300">${category}</p>
+                <p class="text-xs font-bold text-slate-100">${formatCOP(amount)} <span class="text-[10px] text-slate-500 font-normal ml-1">${Math.round(percent)}%</span></p>
+            </div>
+            <div class="w-full bg-slate-900/40 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-slate-700 h-full transition-all duration-1000" style="width: ${percent}%"></div>
+            </div>
+        `;
+        categoryList.appendChild(div);
+    });
 }
 
 function renderDashboard(recentData) {
@@ -74,7 +153,6 @@ function renderDashboard(recentData) {
         });
     });
 
-    // Sort by date (assuming first column is date)
     allEntries.sort((a, b) => new Date(b[0]) - new Date(a[0]));
 
     if (allEntries.length === 0) {
@@ -95,7 +173,7 @@ function renderDashboard(recentData) {
                 <p class="text-[10px] text-slate-500 truncate max-w-[150px]">${entry[4] || ''}</p>
             </div>
             <div class="text-right">
-                <p class="text-sm font-bold ${typeColor}">${symbol}$${parseFloat(entry[3] || 0).toLocaleString('es-CO', { minimumFractionDigits: 2 })}</p>
+                <p class="text-sm font-bold ${typeColor}">${symbol}${formatCOP(entry[3] || 0)}</p>
                 <p class="text-[10px] text-slate-600 uppercase tracking-tighter">${entry[1] || ''}</p>
             </div>
         `;
@@ -122,8 +200,6 @@ function updateCategoryDropdown() {
 
 function switchTab(tab) {
     currentTab = tab;
-
-    // Update UI Tabs
     const tabs = ['dashboard', 'ingreso', 'egreso', 'ahorro'];
     tabs.forEach(t => {
         const btn = document.getElementById(`tab-${t}`);
@@ -141,7 +217,6 @@ function switchTab(tab) {
         dashboardView.classList.add('hidden');
         formTypeInput.value = tab;
 
-        // Update Button Colors
         const colorMap = {
             ingreso: 'from-emerald-500 to-teal-600',
             egreso: 'from-rose-500 to-pink-600',
@@ -149,21 +224,12 @@ function switchTab(tab) {
         };
 
         submitBtn.className = `w-full bg-gradient-to-r ${colorMap[tab]} hover:opacity-90 text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-300 transform active:scale-[0.98]`;
-
-        // Update ring color for focus
-        const ringColor = tab === 'ingreso' ? 'focus:ring-emerald-500/50' : tab === 'egreso' ? 'focus:ring-rose-500/50' : 'focus:ring-amber-500/50';
-        const inputs = [categorySelect, document.getElementById('valor'), document.getElementById('descripcion')];
-        inputs.forEach(input => {
-            input.className = input.className.replace(/focus:ring-\w+-\d+\/\d+/, ringColor);
-        });
-
         updateCategoryDropdown();
     }
 }
 
 async function handleFormSubmit(e) {
     e.preventDefault();
-
     const submitBtnOriginalText = submitBtn.textContent;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Guardando...';
@@ -190,7 +256,7 @@ async function handleFormSubmit(e) {
 
         showToast('¡Registro exitoso!', 'success');
         form.reset();
-        setTimeout(() => switchTab('dashboard'), 1500); // Return to dashboard after success
+        setTimeout(() => switchTab('dashboard'), 1500);
     } catch (error) {
         console.error('Error submitting form:', error);
         showToast('Error al guardar', 'error');
@@ -204,12 +270,8 @@ function showToast(message, type) {
     toastMsg.textContent = message;
     toastIcon.className = `w-6 h-6 rounded-full flex items-center justify-center ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
     toastIcon.innerHTML = type === 'success' ? '✓' : '✕';
-
     toast.classList.add('toast-show');
-    setTimeout(() => {
-        toast.classList.remove('toast-show');
-    }, 3000);
+    setTimeout(() => toast.classList.remove('toast-show'), 3000);
 }
 
-// Global exposure
 window.switchTab = switchTab;
