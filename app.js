@@ -1,5 +1,5 @@
 // Configuration
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzR8FyJzMrTtDGR5W4RhrZdvEDz-uZHWV6j82siXA8unRtistzlOSZ-htHWxFEB5A/exec';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw-7bxJicml2RCfGd_gX5nWQKuuHppsG3tZxFUKqt-qf1hAeZwwbePL8VTYDhYWnfM5/exec';
 
 // State
 let categories = { ingresos: [], egresos: [], ahorro: [] };
