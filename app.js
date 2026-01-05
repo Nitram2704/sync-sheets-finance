@@ -1,3 +1,10 @@
+// Configuration
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwYB-RqUpcruLbBWZzhwMO7kDXvs2ueOb3EU3ejBtLfe5wJ4z1RQIZ4kybea2xAtF_1/exec';
+
+// State
+let categories = { ingresos: [], egresos: [], ahorro: [] };
+let currentTab = 'dashboard';
+
 // Elements
 const form = document.getElementById('finance-form');
 const dashboardView = document.getElementById('dashboard-view');
